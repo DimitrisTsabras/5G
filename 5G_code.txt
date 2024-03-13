@@ -1,0 +1,15 @@
+import numpy as np
+import pandas as pd
+import keras
+from keras import layers
+from matplotlib import pyplot as plt
+from matplotlib.ticker import FormatStrFormatter
+
+file_train_root = "E:/Users/Δημήτρης Τσάμπρας/Desktop/5G/DATA/train-1-1 excel.csv"
+#file_test_root = "E:/Users/Δημήτρης Τσάμπρας/Desktop/test-1-1.csv"
+
+df_trainset = pd.read_csv(file_train_root)
+#df_testset = pd.read_csv(file_test_root)
+
+print(df_trainset)
+#print(df_testset)
