@@ -5,11 +5,48 @@ from keras import layers
 from matplotlib import pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
 
-file_train_root = "E:/Users/Δημήτρης Τσάμπρας/Desktop/5G/DATA/train-1-1 excel.csv"
-#file_test_root = "E:/Users/Δημήτρης Τσάμπρας/Desktop/test-1-1.csv"
+file_train_root = "E:/Users/Δημήτρης Τσάμπρας/Desktop/5G/DATA/train_formated.csv"
+file_test_root = "E:/Users/Δημήτρης Τσάμπρας/Desktop/5G/DATA/test_formated.csv"
+#
+#fields = ['var1', 'var2', 'var3', 'var4', 'var5', 'var6', 'var7',
+#         'var8', 'var9', 'var10', 'var11', 'var12', 'var13', 'var14',
+#         'var15', 'var16', 'var17', 'var18', 'var19', 'var20',
+#          'var21', 'var22', 'var23', 'var24', 'var25', 'var26',
+#          'var27', 'var28', 'var29', 'var30', 'var31', 'var32',
+#          'var33', 'var34', 'var35', 'var36', 'var37', 'var38']
 
-df_trainset = pd.read_csv(file_train_root)
-#df_testset = pd.read_csv(file_test_root)
+#read only the specified column
+#read and display var1
+df_0 = pd.read_csv(file_train_root, usecols=[0])
+print(df_0)
+#read and display var 2
+df_1 = pd.read_csv(file_train_root, usecols=[1])
+print(df_1)
 
-print(df_trainset)
+df_testset0 = pd.read_csv(file_test_root, usecols=[0])
+print(df_testset0)
+df_testset1 = pd.read_csv(file_test_root, usecols=[1])
+print(df_testset1)
+
+#print(df_trainset)
 #print(df_testset)
+
+#plot var1
+fig, ax = plt.subplots()
+df_0.plot(legend=False, ax=ax)
+plt.show()
+
+#plot var2
+fig, ax = plt.subplots()
+df_1.plot(legend=False, ax=ax)
+plt.show()
+
+#plot var1 test
+fig, ax = plt.subplots()
+df_testset0.plot(legend=False, ax=ax)
+plt.show()
+
+#plot var2 test
+fig, ax = plt.subplots()
+df_testset1.plot(legend=False, ax=ax)
+plt.show()
