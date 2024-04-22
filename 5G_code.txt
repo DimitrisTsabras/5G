@@ -27,7 +27,7 @@ print(df_0)
 df_1 = pd.read_csv(file_train_root, usecols=[1])
 print(df_1)
 
-df_testset0 = pd.read_csv(file_test_root, usecols=[0])
+df_testset0 = pd.read_csv(file_test_root, usecols=[0], dtype={'var1': int})
 print(df_testset0)
 #df_testset1 = pd.read_csv(file_test_root, usecols=[1])
 #print(df_testset1)
@@ -46,9 +46,9 @@ df_1.plot(legend=False, ax=ax)
 plt.show()
 
 #plot var1 test
-#fig, ax = plt.subplots()
-#df_testset0.plot(legend=False, ax=ax)
-#plt.show()
+fig, ax = plt.subplots()
+df_testset0.plot(legend=False, ax=ax)
+plt.show()
 
 # plot var2 test
 #fig, ax = plt.subplots()
@@ -126,3 +126,45 @@ plt.plot(history.history["loss"], label="Training Loss")
 plt.plot(history.history["val_loss"], label="Validation Loss")
 plt.legend()
 plt.show()
+
+# Get train MAE loss.
+x_train_pred = model.predict(x_train)
+train_mae_loss = np.mean(np.abs(x_train_pred - x_train), axis=1)
+
+plt.hist(train_mae_loss, bins=50)
+plt.xlabel("Train MAE loss")
+plt.ylabel("No of samples")
+plt.show()
+
+# Get reconstruction loss threshold.
+threshold = np.max(train_mae_loss)
+print("Reconstruction error threshold: ", threshold)
+
+# Checking how the first sequence is learnt
+plt.plot(x_train[0])
+plt.plot(x_train_pred[0])
+plt.show()
+
+df_test_value = (df_testset0 - training_mean) / training_std
+fig, ax = plt.subplots()
+df_test_value.plot(legend=False, ax=ax)
+plt.show()
+
+# Create sequences from test values.
+x_test = create_sequences(df_test_value.values)
+print("Test input shape: ", x_test.shape)
+
+# Get test MAE loss.
+x_test_pred = model.predict(x_test)
+test_mae_loss = np.mean(np.abs(x_test_pred - x_test), axis=1)
+test_mae_loss = test_mae_loss.reshape((-1))
+
+plt.hist(test_mae_loss, bins=50)
+plt.xlabel("test MAE loss")
+plt.ylabel("No of samples")
+plt.show()
+
+# Detect all the samples which are anomalies.
+anomalies = test_mae_loss > threshold
+print("Number of anomaly samples: ", np.sum(anomalies))
+print("Indices of anomaly samples: ", np.where(anomalies))
