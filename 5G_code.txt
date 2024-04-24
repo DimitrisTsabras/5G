@@ -3,11 +3,9 @@ import pandas as pd
 import keras
 from keras import layers
 from matplotlib import pyplot as plt
-from matplotlib.ticker import FormatStrFormatter
 
 # Define the number of time steps
 TIME_STEPS = 12  # Example value, adjust as needed
-
 
 file_train_root = "E:/Users/Δημήτρης Τσάμπρας/Desktop/5G/DATA/train_formated.csv"
 file_test_root = "E:/Users/Δημήτρης Τσάμπρας/Desktop/5G/DATA/test_formated.csv"
@@ -21,19 +19,22 @@ file_test_root = "E:/Users/Δημήτρης Τσάμπρας/Desktop/5G/DATA/tes
 
 # read only the specified column
 # read and display var1
+
 df_0 = pd.read_csv(file_train_root, usecols=[0])
 print(df_0)
+
 # read and display var 2
 df_1 = pd.read_csv(file_train_root, usecols=[1])
 print(df_1)
 
-df_testset0 = pd.read_csv(file_test_root, usecols=[0], dtype={'var1': int})
+df_testset0 = pd.read_csv(file_test_root, usecols=[0])
 print(df_testset0)
-#df_testset1 = pd.read_csv(file_test_root, usecols=[1])
-#print(df_testset1)
 
-# print(df_trainset)
-# print(df_testset)
+# df_testset1 = pd.read_csv(file_test_root, usecols=[1])
+# print(df_testset1)
+
+print(df_testset0.dtypes)
+df_testset0['var1'] = pd.to_numeric(df_testset0['var1'], errors='coerce')
 
 # plot var1
 fig, ax = plt.subplots()
@@ -45,27 +46,28 @@ fig, ax = plt.subplots()
 df_1.plot(legend=False, ax=ax)
 plt.show()
 
-#plot var1 test
+# plot var1 test
 fig, ax = plt.subplots()
 df_testset0.plot(legend=False, ax=ax)
 plt.show()
 
 # plot var2 test
-#fig, ax = plt.subplots()
-#df_testset1.plot(legend=False, ax=ax)
-#plt.show()
+# fig, ax = plt.subplots()
+# df_testset1.plot(legend=False, ax=ax)
+# plt.show()
 
-#var 1
+# var 1
 training_mean = df_0.mean()
 training_std = df_0.std()
 df_training_value = (df_0 - training_mean) / training_std
 print("Number of training samples:", len(df_training_value))
 
+
 # Generated training sequences for use in the model.
 def create_sequences(values, time_steps=TIME_STEPS):
     output = []
     for i in range(len(values) - time_steps + 1):
-        output.append(values[i : (i + time_steps)])
+        output.append(values[i: (i + time_steps)])
     return np.stack(output)
 
 
@@ -168,3 +170,15 @@ plt.show()
 anomalies = test_mae_loss > threshold
 print("Number of anomaly samples: ", np.sum(anomalies))
 print("Indices of anomaly samples: ", np.where(anomalies))
+
+# data i is an anomaly if samples [(i - timesteps + 1) to (i)] are anomalies
+anomalous_data_indices = []
+for data_idx in range(TIME_STEPS - 1, len(df_test_value) - TIME_STEPS + 1):
+    if np.all(anomalies[data_idx - TIME_STEPS + 1: data_idx]):
+        anomalous_data_indices.append(data_idx)
+
+df_subset = df_testset0.iloc[anomalous_data_indices]
+fig, ax = plt.subplots()
+df_testset0.plot(legend=False, ax=ax)
+df_subset.plot(legend=False, ax=ax, color="r")
+plt.show()
