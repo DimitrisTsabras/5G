@@ -1,0 +1,198 @@
+# Data Processing:
+import numpy as np
+import pandas as pd
+import keras
+from keras import layers, Input
+import tensorflow as tf
+# Visualisation:
+from matplotlib import pyplot as plt
+
+
+# Define the number of time steps
+TIME_STEPS = 12  # Example value, adjust as needed
+
+#change file root as required!
+file_train_root = "C:/Users/nasos/Desktop/ΕΡ - 5G/df/train.txt"
+file_test_root = "C:/Users/nasos/Desktop/ΕΡ - 5G/df/test.txt"
+
+df_train = pd.read_csv(file_train_root, sep=',')
+df_test = pd.read_csv(file_test_root, sep=',')
+
+# check dataset:
+'''
+print(df_train.dtypes) # check the data types of the columns
+print(df_test.dtypes) # check the data types of the columns
+
+# shape of the data
+print(df_train.shape)
+print(df_test.shape)
+'''
+# Reshape your data
+x_train = np.reshape(df_train.values, (df_train.shape[0], df_train.shape[1], 1))
+x_test = np.reshape(df_test.values, (df_test.shape[0], df_test.shape[1], 1))
+
+# Generated training sequences for use in the model.
+def create_sequences(values, time_steps=TIME_STEPS):
+    output = []
+    for i in range(len(values) - time_steps + 1):
+        output.append(values[i: (i + time_steps)])
+    return np.stack(output)
+
+x_train = create_sequences(df_train.values)
+print("Training input shape: ", x_train.shape)
+
+x_test = create_sequences(df_test.values)
+print("Test input shape: ", x_test.shape)
+
+model = keras.Sequential(
+    [
+        layers.Input(shape=(x_train.shape[1], x_train.shape[2])),
+        layers.Conv1D(
+            filters=32,
+            kernel_size=7,
+            padding="same",
+            strides=2,
+            activation="relu",
+        ),
+        layers.Dropout(rate=0.2),
+        layers.Conv1D(
+            filters=16,
+            kernel_size=7,
+            padding="same",
+            strides=2,
+            activation="relu",
+        ),
+        layers.Conv1DTranspose(
+            filters=16,
+            kernel_size=7,
+            padding="same",
+            strides=2,
+            activation="relu",
+        ),
+        layers.Dropout(rate=0.2),
+        layers.Conv1DTranspose(
+            filters=32,
+            kernel_size=7,
+            padding="same",
+            strides=2,
+            activation="relu",
+        ),
+        layers.Conv1DTranspose(filters=38, kernel_size=7, padding="same"),  # Adjusted the number of filters to match the number of features
+    ]
+)
+model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001), loss="mse")
+model.summary()
+
+history = model.fit(
+    x_train,
+    x_train,
+    epochs=20,
+    batch_size=128,
+    validation_split=0.1,
+    callbacks=[
+        keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, mode="min")
+    ],
+)
+
+# ========== Plots ==========
+
+# Plotting the Training Loss:
+plt.plot(history.history['loss'], label='Training Loss')
+
+# Plotting the Validation Loss:
+plt.plot(history.history['val_loss'], label='Validation Loss')
+
+plt.title('Training and Validation Loss')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+
+plt.legend()
+plt.show()
+
+# ========== Predictions ==========
+
+# Plotting the MAE Loss for the Training Data:
+train_predictions = model.predict(x_train)
+train_mae_loss = np.mean(np.abs(train_predictions - x_train), axis=1)
+
+
+plt.hist(train_mae_loss, bins=50)
+plt.title('MAE Loss - TRAIN')
+plt.xlabel('Train MAE Loss')
+plt.ylabel('No of samples')
+plt.show()
+
+# Calculate the threshold for each variable
+thresholds = np.max(train_mae_loss, axis=0)
+
+print("Reconstruction error thresholds: ", thresholds)
+
+# compare reconstruction for var1
+plt.title('Reconstruction vs Original of var1')
+plt.plot(x_train[:, 0, 0], color='blue', label='Original')  # Original values of var1
+plt.plot(train_predictions[:, 0, 0], color='orange', label='Reconstructed')  # Reconstructed values of var1
+plt.legend(loc='upper right')  # Add a legend
+plt.show()
+
+# compare reconstruction for var2
+plt.title('Reconstruction vs Original of var2')
+plt.plot(x_train[:, 0, 1], color='blue', label='Original')  # Original values of var2
+plt.plot(train_predictions[:, 0, 1], color='orange', label='Reconstructed')  # Reconstructed values of var2
+plt.legend(loc='upper right')  # Add a legend
+plt.show()
+
+# compare reconstruction for var2
+plt.title('Reconstruction vs Original of var25')
+plt.plot(x_train[:, 0, 24], color='blue', label='Original')  # Original values of var2
+plt.plot(train_predictions[:, 0, 24], color='orange', label='Reconstructed')  # Reconstructed values of var2
+plt.legend(loc='upper right')  # Add a legend
+plt.show()
+
+# ========== Detecting and Locating Anomalies ==========
+x_test_pred = model.predict(x_test)
+test_mae_loss = np.mean(np.abs(x_test_pred - x_test), axis=1)
+test_mae_loss = test_mae_loss.reshape((-1))
+
+# Plotting the MAE Loss for the Test Data:
+plt.hist(test_mae_loss, bins=50)
+plt.title('MAE Loss - TEST')
+plt.xlabel('Test MAE Loss')
+plt.ylabel('No of samples')
+plt.show()
+
+# Detecting Anomalies:
+# Calculate the MAE loss for each variable
+test_mae_loss = np.mean(np.abs(x_test_pred - x_test), axis=0)
+
+# Initialize an empty list to store the anomalies
+anomalies = []
+
+# For each variable
+for i in range(test_mae_loss.shape[1]):
+    # Detect anomalies for the current variable
+    anomalies_for_current_variable = test_mae_loss[:, i] > thresholds[i]
+
+    # Append the anomalies for the current variable to the list of all anomalies
+    anomalies.append(anomalies_for_current_variable)
+
+# Convert the list of anomalies to a numpy array
+anomalies = np.array(anomalies)
+
+# Print the number of anomalies for each variable
+print("Number of Anomalies for each variable: ", np.sum(anomalies, axis=1))
+
+# Print the indices of anomalies for each variable
+for i in range(anomalies.shape[0]):
+    print(f"Indices of Anomalies for variable {i+1}: ", np.where(anomalies[i]))
+
+# data i is an anomaly if samples [(i - timesteps + 1) to (i)] are anomalies
+anomalous_data_indices = []
+for data_idx in range(TIME_STEPS - 1, len(df_test) - TIME_STEPS + 1):
+    if np.all(anomalies[data_idx - TIME_STEPS + 1 : data_idx]):
+        anomalous_data_indices.append(data_idx)
+
+df_subset = df_test.iloc[anomalous_data_indices]
+fig, ax = plt.subplots()
+df_test.plot(legend=False, ax=ax)
+df_subset.plot(legend=False, ax=ax, color="r")
+plt.show()
